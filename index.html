@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NebulaCraft — AI Code Synthesis Studio | Powered by MiMo</title>
+<meta name="description" content="NebulaCraft is an AI-native development studio that turns natural language into production-ready code, tests, and deployments. Built on MiMo, Claude, and DeepSeek." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#05060d;
+    --bg-2:#0a0b1a;
+    --ink:#e9ecf5;
+    --muted:#9aa3bf;
+    --accent:#7c5cff;
+    --accent-2:#22d3ee;
+    --accent-3:#ff6ec7;
+    --line:rgba(255,255,255,.08);
+    --card:rgba(255,255,255,.04);
+    --card-hi:rgba(255,255,255,.07);
+    --radius:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',system-ui,sans-serif;overflow-x:hidden;scroll-behavior:smooth}
+  a{color:inherit;text-decoration:none}
+  code,pre,.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+  /* ==== Animated Background ==== */
+  .bg-canvas{position:fixed;inset:0;z-index:-2}
+  .bg-grad{position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(124,92,255,.35), transparent 60%),
+      radial-gradient(800px 600px at 100% 10%, rgba(34,211,238,.22), transparent 60%),
+      radial-gradient(700px 500px at 50% 100%, rgba(255,110,199,.18), transparent 60%),
+      linear-gradient(180deg, #05060d 0%, #07091a 100%);
+  }
+  .bg-grid{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.18;
+    background-image:
+      linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(ellipse at 50% 30%, #000 30%, transparent 80%);
+  }
+
+  /* ==== Top bar ==== */
+  .nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(18px) saturate(140%);
+    background:rgba(7,9,26,.55);border-bottom:1px solid var(--line)}
+  .nav-inner{max-width:1240px;margin:auto;padding:14px 28px;display:flex;align-items:center;gap:28px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .logo{width:30px;height:30px;border-radius:9px;
+    background:conic-gradient(from 220deg,#7c5cff,#22d3ee,#ff6ec7,#7c5cff);
+    box-shadow:0 0 24px rgba(124,92,255,.55), inset 0 0 12px rgba(255,255,255,.25);
+    position:relative;overflow:hidden}
+  .logo::after{content:"";position:absolute;inset:5px;border-radius:6px;background:#06070f}
+  .nav-links{display:flex;gap:6px;flex-wrap:wrap;margin-left:8px}
+  .nav-links a{padding:8px 12px;border-radius:10px;color:var(--muted);font-size:14px;transition:.2s}
+  .nav-links a:hover{color:var(--ink);background:var(--card)}
+  .nav-cta{margin-left:auto;display:flex;gap:10px}
+  .btn{padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:8px}
+  .btn:hover{background:var(--card-hi);transform:translateY(-1px)}
+  .btn-primary{background:linear-gradient(135deg,#7c5cff,#22d3ee);border:none;color:#06070f}
+  .btn-primary:hover{filter:brightness(1.08);box-shadow:0 8px 28px rgba(124,92,255,.35)}
+
+  /* ==== Layout ==== */
+  section{max-width:1240px;margin:0 auto;padding:96px 28px;position:relative}
+  .eyebrow{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border:1px solid var(--line);
+    border-radius:999px;font-size:12px;color:var(--muted);background:var(--card)}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#22d3ee;box-shadow:0 0 12px #22d3ee}
+  h1{font-size:clamp(40px,6vw,76px);line-height:1.05;letter-spacing:-.02em;font-weight:700;margin:18px 0}
+  h2{font-size:clamp(28px,3.4vw,44px);line-height:1.1;letter-spacing:-.01em;font-weight:600;margin-bottom:14px}
+  h3{font-size:20px;font-weight:600;margin-bottom:8px}
+  p.lead{font-size:18px;color:var(--muted);max-width:680px;line-height:1.6}
+  .grad-text{background:linear-gradient(135deg,#a48bff 0%,#22d3ee 50%,#ff6ec7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* ==== Hero ==== */
+  .hero{padding-top:60px;padding-bottom:40px}
+  .hero-row{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+  @media(max-width:980px){.hero-row{grid-template-columns:1fr}}
+  .hero-cta{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:48px}
+  .stat{padding:18px;border:1px solid var(--line);background:var(--card);border-radius:var(--radius)}
+  .stat b{display:block;font-size:26px;font-weight:700;color:var(--ink)}
+  .stat span{color:var(--muted);font-size:13px}
+
+  /* code window */
+  .code{border:1px solid var(--line);background:linear-gradient(180deg,rgba(20,22,40,.85),rgba(10,12,28,.85));
+    border-radius:16px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.5), 0 0 0 1px rgba(124,92,255,.08)}
+  .code-bar{display:flex;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:center}
+  .dot-r{width:11px;height:11px;border-radius:50%}
+  .dr1{background:#ff5f57}.dr2{background:#febc2e}.dr3{background:#28c840}
+  .code-bar .file{margin-left:14px;color:var(--muted);font-size:12px}
+  .code pre{padding:18px 20px;font-size:13.5px;line-height:1.6;color:#cfd5ee;overflow:auto;max-height:380px}
+  .kw{color:#c084fc}.fn{color:#22d3ee}.str{color:#fda4af}.cm{color:#64748b;font-style:italic}.num{color:#fbbf24}
+
+  /* ==== Cards ==== */
+  .grid{display:grid;gap:18px}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .grid-4{grid-template-columns:repeat(4,1fr)}
+  .grid-2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:880px){.grid-3,.grid-4,.grid-2{grid-template-columns:1fr}}
+  .card{padding:24px;border:1px solid var(--line);background:var(--card);border-radius:var(--radius);
+    transition:.25s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-3px);background:var(--card-hi);border-color:rgba(124,92,255,.3)}
+  .card .icon{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;
+    background:linear-gradient(135deg,rgba(124,92,255,.25),rgba(34,211,238,.18));
+    border:1px solid rgba(124,92,255,.3);font-size:20px;margin-bottom:14px}
+  .card p{color:var(--muted);font-size:14.5px;line-height:1.6}
+
+  /* ==== Workflow steps ==== */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}
+  @media(max-width:880px){.flow{grid-template-columns:1fr 1fr}}
+  .step{padding:22px;border:1px solid var(--line);border-radius:16px;background:var(--card);position:relative}
+  .step .num{position:absolute;top:-12px;right:14px;width:36px;height:36px;border-radius:50%;
+    display:grid;place-items:center;font-weight:700;
+    background:linear-gradient(135deg,#7c5cff,#22d3ee);color:#06070f}
+
+  /* ==== Pricing ==== */
+  .price{padding:28px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+  .price.featured{border:1px solid rgba(124,92,255,.55);background:linear-gradient(180deg,rgba(124,92,255,.10),rgba(34,211,238,.05));
+    box-shadow:0 0 60px rgba(124,92,255,.18)}
+  .price h3{font-size:18px;color:var(--muted)}
+  .price .amt{font-size:42px;font-weight:700;margin:6px 0 2px}
+  .price ul{list-style:none;margin:18px 0}
+  .price li{padding:8px 0;color:var(--muted);font-size:14.5px;display:flex;align-items:center;gap:10px}
+  .price li::before{content:"✓";color:#22d3ee;font-weight:700}
+
+  /* ==== Showcase ==== */
+  .show{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:880px){.show{grid-template-columns:1fr}}
+  .show .item{position:relative;border:1px solid var(--line);background:var(--card);border-radius:16px;
+    overflow:hidden;aspect-ratio:4/3;cursor:pointer;transition:.3s}
+  .show .item:hover{transform:translateY(-3px);border-color:rgba(34,211,238,.5)}
+  .show .item .visual{position:absolute;inset:0;display:grid;place-items:center;font-size:54px}
+  .show .item .label{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;
+    background:linear-gradient(180deg,transparent,rgba(0,0,0,.7));font-size:14px}
+
+  /* ==== Tech ==== */
+  .tech-bar{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+    font-family:'JetBrains Mono';font-size:12px;color:var(--muted)}
+
+  /* ==== Footer ==== */
+  footer{border-top:1px solid var(--line);padding:48px 28px 32px;background:rgba(5,6,13,.6);margin-top:60px}
+  .foot-inner{max-width:1240px;margin:auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:36px}
+  @media(max-width:880px){.foot-inner{grid-template-columns:1fr 1fr}}
+  .foot-inner h4{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:14px}
+  .foot-inner ul{list-style:none}
+  .foot-inner li{margin:8px 0}
+  .foot-inner li a{color:var(--muted);font-size:14px;transition:.2s}
+  .foot-inner li a:hover{color:var(--ink)}
+  .copy{text-align:center;color:var(--muted);font-size:13px;margin-top:36px;padding-top:20px;border-top:1px solid var(--line)}
+
+  /* badge ribbon */
+  .ribbon{position:absolute;top:14px;right:14px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;
+    background:linear-gradient(135deg,#7c5cff,#22d3ee);color:#06070f}
+
+  /* fade-in */
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  /* divider */
+  .div-line{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent);margin:60px 0}
+
+  /* faq */
+  details{padding:18px 22px;border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:10px}
+  details[open]{background:var(--card-hi)}
+  details summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details summary::after{content:"+";font-size:22px;color:var(--accent-2)}
+  details[open] summary::after{content:"−"}
+  details p{color:var(--muted);margin-top:12px;line-height:1.6}
+
+  /* terminal-style proof block */
+  .proof{padding:24px;background:#04050b;border:1px solid var(--line);border-radius:14px;font-family:'JetBrains Mono';font-size:13.5px;color:#94a3b8;overflow:auto}
+  .proof .ok{color:#22d3ee}
+  .proof .warn{color:#fbbf24}
+  .proof .err{color:#ff6ec7}
+</style>
+</head>
+<body>
+
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+<div class="bg-grad"></div>
+<div class="bg-grid"></div>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="brand"><div class="logo"></div> NebulaCraft</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#models">Models</a>
+      <a href="#showcase">Showcase</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#docs">Docs</a>
+      <a href="#blog">Blog</a>
+      <a href="#faq">FAQ</a>
+      <a href="#about">About</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn" href="#docs">Sign in</a>
+      <a class="btn btn-primary" href="#pricing">Start free →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-row">
+    <div class="reveal">
+      <span class="eyebrow"><span class="dot"></span> Now powered by MiMo · 100T Token Initiative</span>
+      <h1>Turn natural language into <span class="grad-text">production code</span>, ship in minutes.</h1>
+      <p class="lead">NebulaCraft is an AI-native code synthesis studio. Describe what you want, get fully tested, deployable code — across full-stack apps, APIs, infra, and ML pipelines. Built on MiMo-Series, Claude-Series, and DeepSeek-Series models with real agentic execution.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#pricing">Start building free</a>
+        <a class="btn" href="#workflow">See it work →</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>2.4M+</b><span>code blocks generated</span></div>
+        <div class="stat"><b>14k</b><span>active developers</span></div>
+        <div class="stat"><b>97.3%</b><span>test pass rate</span></div>
+        <div class="stat"><b>&lt;2s</b><span>median latency</span></div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="code">
+        <div class="code-bar">
+          <span class="dot-r dr1"></span><span class="dot-r dr2"></span><span class="dot-r dr3"></span>
+          <span class="file mono">~ /nebulacraft/agent.py</span>
+        </div>
+<pre><span class="cm"># Spin up an autonomous agent on MiMo</span>
+<span class="kw">from</span> nebulacraft <span class="kw">import</span> Studio, MiMoModel
+
+studio = Studio(model=MiMoModel(<span class="str">"mimo-v2.5-pro"</span>))
+
+task = studio.<span class="fn">create_task</span>(
+    goal=<span class="str">"Build a Stripe-billed FastAPI service"</span>,
+    constraints=[<span class="str">"Postgres"</span>, <span class="str">"Docker"</span>, <span class="str">"100% test cov"</span>],
+)
+
+result = <span class="kw">await</span> task.<span class="fn">execute</span>()
+<span class="fn">print</span>(result.summary)
+<span class="cm"># ✓ 14 files generated · 32 tests · deployed to fly.io</span></pre>
+      </div>
+
+      <div class="tech-bar" style="margin-top:18px;justify-content:center">
+        <span class="chip">mimo-v2.5-pro</span>
+        <span class="chip">claude-sonnet-4</span>
+        <span class="chip">deepseek-v3</span>
+        <span class="chip">+12 more</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<section id="features" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Capabilities</span>
+  <h2>Everything you need to ship serious software</h2>
+  <p class="lead">A complete cockpit: code synthesis, test generation, refactoring, infra-as-code, and review. Each module is composable.</p>
+
+  <div class="grid grid-3" style="margin-top:36px">
+    <div class="card">
+      <div class="icon">⚡</div>
+      <h3>Synthesis Engine</h3>
+      <p>Multi-step planner converts intent into typed modules with passing tests. Handles Python, TypeScript, Go, Rust, Solidity.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🧠</div>
+      <h3>Memory Graph</h3>
+      <p>Persistent project memory that maps files, decisions, and APIs — so the agent never forgets why a function exists.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🛡</div>
+      <h3>Sandboxed Runtime</h3>
+      <p>Every diff is built and tested in an isolated container before it touches your tree. Zero rogue commits.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🌐</div>
+      <h3>Polyglot APIs</h3>
+      <p>Generate REST, GraphQL, gRPC, or tRPC scaffolds with auth, rate limits, and OpenAPI docs in one prompt.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🧪</div>
+      <h3>Test Synthesis</h3>
+      <p>Property-based + unit + integration tests generated alongside the code, with coverage reports baked in.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🚀</div>
+      <h3>1-Click Deploy</h3>
+      <p>Push to Vercel, Fly, Railway, AWS, or your own Kubernetes cluster with type-checked Pulumi or Terraform stacks.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🔍</div>
+      <h3>Code Review Agent</h3>
+      <p>Continuous PR review with security checks, perf hot-spots, and architectural drift warnings.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📡</div>
+      <h3>Live Telemetry</h3>
+      <p>Plug your logs and traces back into the agent so it self-heals failing endpoints overnight.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🔐</div>
+      <h3>Vault Secrets</h3>
+      <p>Per-project encrypted vault. Tokens never touch the model context — values are referenced by handle only.</p>
+    </div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ WORKFLOW ============ -->
+<section id="workflow" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Workflow</span>
+  <h2>How a NebulaCraft session flows</h2>
+  <p class="lead">The agent operates as a real teammate: plans, executes, verifies, then ships. You stay in control at each gate.</p>
+
+  <div class="flow">
+    <div class="step"><span class="num">1</span><h3>Describe</h3><p>Tell the studio what you want — feature, bug, migration. Drop in repo URL or upload a folder.</p></div>
+    <div class="step"><span class="num">2</span><h3>Plan</h3><p>The MiMo planner decomposes the goal into ordered diffs and acceptance criteria you approve.</p></div>
+    <div class="step"><span class="num">3</span><h3>Build</h3><p>Each diff runs in a sandbox with build + test. Failures self-correct via tool-use loops.</p></div>
+    <div class="step"><span class="num">4</span><h3>Ship</h3><p>Open a PR, run CI, deploy to staging or prod with rollback baked in.</p></div>
+  </div>
+
+  <div class="proof reveal" style="margin-top:36px">
+<span class="ok">$</span> nebula run "add Stripe checkout to /api/billing"
+<span class="ok">→</span> planner: 6 steps generated · 4 files to touch · 11 tests
+<span class="ok">→</span> step 1/6 :: types/Billing.ts          <span class="ok">[OK]</span> 0.42s
+<span class="ok">→</span> step 2/6 :: api/billing/checkout.ts   <span class="ok">[OK]</span> 1.18s
+<span class="ok">→</span> step 3/6 :: api/billing/webhook.ts    <span class="warn">[RETRY]</span> tsc strict-null
+<span class="ok">→</span> step 3/6 :: api/billing/webhook.ts    <span class="ok">[OK]</span> 0.71s
+<span class="ok">→</span> step 4/6 :: tests/billing.test.ts     <span class="ok">[OK]</span> 11/11 pass
+<span class="ok">→</span> step 5/6 :: docs/billing.md           <span class="ok">[OK]</span>
+<span class="ok">→</span> step 6/6 :: .env.example              <span class="ok">[OK]</span>
+<span class="ok">✓</span> PR opened: #482 · ready for review
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ MODELS ============ -->
+<section id="models" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Model Catalog</span>
+  <h2>Pick the right brain for the job</h2>
+  <p class="lead">Route between MiMo, Claude, DeepSeek, GPT, Gemini, Doubao, and MiniMax with cost, latency, and quality controls.</p>
+
+  <div class="grid grid-4" style="margin-top:36px">
+    <div class="card"><div class="icon">⚡</div><h3>MiMo Pro</h3><p>1M context · 128 tools · best-in-class agentic loops. Default for autonomous code.</p></div>
+    <div class="card"><div class="icon">🧬</div><h3>Claude Sonnet 4</h3><p>Long-form reasoning, refactor architectures, write design docs.</p></div>
+    <div class="card"><div class="icon">🔬</div><h3>DeepSeek V3</h3><p>Fastest math + code reasoning per dollar. Great for tests + algorithms.</p></div>
+    <div class="card"><div class="icon">🪐</div><h3>Gemini Pro</h3><p>Multimodal: ingest screenshots, Figma, and PDFs end-to-end.</p></div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ SHOWCASE ============ -->
+<section id="showcase" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Built with NebulaCraft</span>
+  <h2>Things shipped this month</h2>
+  <p class="lead">Real production projects synthesized end-to-end on the platform. Click through to read the case study.</p>
+
+  <div class="show" style="margin-top:36px">
+    <div class="item"><div class="visual" style="background:radial-gradient(circle at 30% 30%,#7c5cff,#1a1a3e)">🛰</div><div class="label">Orbital Pulse — telemetry SaaS · 18 services</div></div>
+    <div class="item"><div class="visual" style="background:radial-gradient(circle at 70% 30%,#22d3ee,#0a3340)">🏦</div><div class="label">Helios Bank — KYC pipeline · 4 weeks → 4 days</div></div>
+    <div class="item"><div class="visual" style="background:radial-gradient(circle at 50% 50%,#ff6ec7,#3b0a4a)">🎨</div><div class="label">Prism Studio — design-to-React · 1.2k components</div></div>
+    <div class="item"><div class="visual" style="background:radial-gradient(circle at 30% 70%,#fbbf24,#3a2a05)">📦</div><div class="label">Crate Logistics — route optimizer · −34% cost</div></div>
+    <div class="item"><div class="visual" style="background:radial-gradient(circle at 70% 70%,#34d399,#063a2a)">🩺</div><div class="label">Vital.ai — HIPAA portal · SOC-2 ready</div></div>
+    <div class="item"><div class="visual" style="background:radial-gradient(circle at 50% 30%,#a48bff,#1d0a3a)">🎮</div><div class="label">Voxel Arena — multiplayer netcode · 60Hz tick</div></div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Pricing</span>
+  <h2>Pay only for what you ship</h2>
+  <p class="lead">Transparent token-based pricing with predictable monthly caps. No seat tax.</p>
+
+  <div class="grid grid-3" style="margin-top:36px">
+    <div class="price">
+      <h3>Hobby</h3>
+      <div class="amt">$0<span style="font-size:14px;color:var(--muted)">/mo</span></div>
+      <p style="color:var(--muted)">Perfect for solo devs &amp; weekend builds.</p>
+      <ul>
+        <li>500k tokens / month</li><li>Up to 3 projects</li>
+        <li>Community support</li><li>Public PRs only</li>
+      </ul>
+      <a class="btn" href="#" style="width:100%;justify-content:center">Get started</a>
+    </div>
+    <div class="price featured">
+      <span class="ribbon">Popular</span>
+      <h3>Pro</h3>
+      <div class="amt">$29<span style="font-size:14px;color:var(--muted)">/mo</span></div>
+      <p style="color:var(--muted)">For senior engineers shipping daily.</p>
+      <ul>
+        <li>10M tokens / month</li><li>Unlimited projects</li>
+        <li>Priority routing</li><li>Private repos</li>
+        <li>Custom system prompts</li>
+      </ul>
+      <a class="btn btn-primary" href="#" style="width:100%;justify-content:center">Start 14-day trial</a>
+    </div>
+    <div class="price">
+      <h3>Team</h3>
+      <div class="amt">$99<span style="font-size:14px;color:var(--muted)">/seat/mo</span></div>
+      <p style="color:var(--muted)">For squads and platform teams.</p>
+      <ul>
+        <li>Pooled 80M tokens</li><li>SSO + SCIM</li>
+        <li>Audit log + retention</li><li>SOC 2 Type II</li><li>Dedicated channel</li>
+      </ul>
+      <a class="btn" href="#" style="width:100%;justify-content:center">Talk to sales</a>
+    </div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ DOCS ============ -->
+<section id="docs" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Documentation</span>
+  <h2>Quickstart in 60 seconds</h2>
+  <p class="lead">Install, authenticate, and synthesize your first module in under a minute.</p>
+
+  <div class="grid grid-2" style="margin-top:36px">
+    <div class="code">
+      <div class="code-bar"><span class="dot-r dr1"></span><span class="dot-r dr2"></span><span class="dot-r dr3"></span><span class="file mono">install.sh</span></div>
+<pre><span class="cm"># 1 — Install the CLI</span>
+$ curl -fsSL nebulacraft.dev/install | sh
+
+<span class="cm"># 2 — Login (browser opens)</span>
+$ nebula login
+
+<span class="cm"># 3 — Initialize</span>
+$ nebula init --model mimo-v2.5-pro
+✓ Project ready in ~/my-app
+</pre>
+    </div>
+    <div class="code">
+      <div class="code-bar"><span class="dot-r dr1"></span><span class="dot-r dr2"></span><span class="dot-r dr3"></span><span class="file mono">first-task.ts</span></div>
+<pre><span class="kw">import</span> { Studio } <span class="kw">from</span> <span class="str">"nebulacraft"</span>;
+
+<span class="kw">const</span> studio = <span class="kw">new</span> <span class="fn">Studio</span>({ model: <span class="str">"mimo-v2.5-pro"</span> });
+
+<span class="kw">const</span> result = <span class="kw">await</span> studio.<span class="fn">run</span>({
+  goal: <span class="str">"Add JWT auth to my Express app"</span>,
+  repo: <span class="str">"./"</span>,
+  approve: <span class="str">"auto"</span>,
+});
+
+console.<span class="fn">log</span>(result.pullRequestUrl);
+<span class="cm">// → https://github.com/.../pull/482</span>
+</pre>
+    </div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ BLOG ============ -->
+<section id="blog" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> Engineering Blog</span>
+  <h2>What we're learning, in public</h2>
+  <div class="grid grid-3" style="margin-top:36px">
+    <div class="card">
+      <div class="icon">✍</div>
+      <h3>Why we route to MiMo by default</h3>
+      <p>Benchmarks across 40 agentic tasks: tool-use accuracy, plan stability, and price-to-token quality.</p>
+      <p class="mono" style="margin-top:14px;font-size:12px;color:#22d3ee">May 18 · 7 min read</p>
+    </div>
+    <div class="card">
+      <div class="icon">🧱</div>
+      <h3>Sandboxed agent runtimes</h3>
+      <p>How we run untrusted code with Firecracker microVMs and snapshot every step for replay.</p>
+      <p class="mono" style="margin-top:14px;font-size:12px;color:#22d3ee">May 11 · 11 min read</p>
+    </div>
+    <div class="card">
+      <div class="icon">📐</div>
+      <h3>Plan-first agents beat reflex agents</h3>
+      <p>Empirical results from 12k production runs on why decomposition wins over single-shot generation.</p>
+      <p class="mono" style="margin-top:14px;font-size:12px;color:#22d3ee">May 04 · 9 min read</p>
+    </div>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ FAQ ============ -->
+<section id="faq" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> FAQ</span>
+  <h2>Common questions</h2>
+
+  <div style="margin-top:28px;max-width:880px">
+    <details open>
+      <summary>Which models can I use?</summary>
+      <p>MiMo (Pro / Lite), Claude Sonnet/Opus, DeepSeek V3, GPT-4 family, Gemini Pro, Doubao, MiniMax, and a dozen open-weights served from our edge fleet. Switch with one CLI flag.</p>
+    </details>
+    <details>
+      <summary>Does NebulaCraft store my code?</summary>
+      <p>By default, no. Project trees are mounted ephemerally into sandboxed runtimes and discarded after each task. Optional encrypted memory graphs live only on your account.</p>
+    </details>
+    <details>
+      <summary>How do you handle secrets?</summary>
+      <p>Per-project encrypted vault. Values are never sent to the model — the agent receives opaque handles like <span class="mono">$secret.STRIPE_KEY</span> and our runtime injects the real value at call time.</p>
+    </details>
+    <details>
+      <summary>Can I bring my own model endpoint?</summary>
+      <p>Yes. Point the studio at any OpenAI-compatible endpoint. We support custom routing rules, fallbacks, and budget caps.</p>
+    </details>
+    <details>
+      <summary>What about open-source?</summary>
+      <p>The CLI, the planner core, and the sandbox runtime are MIT-licensed. The hosted studio offers extras like the memory graph, telemetry, and team features.</p>
+    </details>
+  </div>
+</section>
+
+<div class="div-line"></div>
+
+<!-- ============ ABOUT ============ -->
+<section id="about" class="reveal">
+  <span class="eyebrow"><span class="dot"></span> About</span>
+  <h2>Built by engineers who got tired of waiting for builds</h2>
+  <p class="lead">NebulaCraft is a small studio working on the next layer of developer tooling: where the model is part of the codebase, not just a chat next to it. We believe agentic AI is the new compiler — and we're making sure it ships things you'd be proud to deploy.</p>
+
+  <div class="tech-bar" style="margin-top:28px">
+    <span class="chip">Founded 2025</span>
+    <span class="chip">Remote · 6 cities</span>
+    <span class="chip">Backed by indie devs</span>
+    <span class="chip">SOC 2 in progress</span>
+    <span class="chip">Hiring 3 engineers</span>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="foot-inner">
+    <div>
+      <div class="brand"><div class="logo"></div> NebulaCraft</div>
+      <p style="color:var(--muted);font-size:14px;margin-top:14px;max-width:340px">
+        AI code synthesis studio. Plan, build, test, and ship — with MiMo at the core.
+      </p>
+      <div class="tech-bar" style="margin-top:18px">
+        <span class="chip">Status: All systems normal ●</span>
+      </div>
+    </div>
+    <div>
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#workflow">Workflow</a></li>
+        <li><a href="#models">Models</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Resources</h4>
+      <ul>
+        <li><a href="#docs">Docs</a></li>
+        <li><a href="#blog">Blog</a></li>
+        <li><a href="#showcase">Showcase</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#about">About</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Terms</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="copy">© 2026 NebulaCraft Studio · Built with MiMo · 100T Token Initiative participant</div>
+</footer>
+
+<script>
+  /* Reveal on scroll */
+  const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), {threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  /* Particle nebula background */
+  (() => {
+    const c = document.getElementById('bgCanvas');
+    const ctx = c.getContext('2d');
+    let w, h, particles = [], stars = [];
+    function resize(){
+      w = c.width = innerWidth * devicePixelRatio;
+      h = c.height = innerHeight * devicePixelRatio;
+      c.style.width = innerWidth+'px';
+      c.style.height = innerHeight+'px';
+      stars = Array.from({length: 220}, () => ({
+        x: Math.random()*w, y: Math.random()*h,
+        r: Math.random()*1.6 + .3,
+        a: Math.random()*.7 + .2,
+        s: Math.random()*.04 + .005
+      }));
+      particles = Array.from({length: 60}, () => ({
+        x: Math.random()*w, y: Math.random()*h,
+        vx: (Math.random()-.5)*.25, vy: (Math.random()-.5)*.25,
+        r: Math.random()*1.4 + .6,
+        hue: Math.random()*60 + 240
+      }));
+    }
+    resize(); addEventListener('resize', resize);
+
+    function loop(){
+      ctx.clearRect(0,0,w,h);
+
+      // twinkling stars
+      for (const s of stars){
+        s.a += (Math.random()-.5)*s.s;
+        if (s.a < .15) s.a = .15;
+        if (s.a > .9)  s.a = .9;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(220,225,255,${s.a})`;
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+        ctx.fill();
+      }
+      // floating particles + connections
+      for (const p of particles){
+        p.x += p.vx; p.y += p.vy;
+        if (p.x<0||p.x>w) p.vx*=-1;
+        if (p.y<0||p.y>h) p.vy*=-1;
+        ctx.beginPath();
+        ctx.fillStyle = `hsla(${p.hue},90%,72%,.55)`;
+        ctx.arc(p.x, p.y, p.r*devicePixelRatio, 0, Math.PI*2);
+        ctx.fill();
+      }
+      for (let i=0; i<particles.length; i++){
+        for (let j=i+1; j<particles.length; j++){
+          const a=particles[i], b=particles[j];
+          const dx=a.x-b.x, dy=a.y-b.y, d=Math.hypot(dx,dy);
+          if (d < 160*devicePixelRatio){
+            ctx.strokeStyle = `rgba(124,92,255,${(1 - d/(160*devicePixelRatio))*.18})`;
+            ctx.lineWidth = devicePixelRatio*.5;
+            ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  })();
+</script>
+</body>
+</html>
